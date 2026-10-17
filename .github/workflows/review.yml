@@ -9,6 +9,8 @@ concurrency:
 
 permissions:
   contents: read
+  # The review is posted back to the pull request as a comment.
+  pull-requests: write
 
 jobs:
   review:

@@ -15,3 +15,5 @@ Then:
 - Read the surrounding code for every changed file before judging it.
 - Focus on correctness, edge cases, and consistency with the existing patterns in the repository.
 - Report concrete findings file by file, most important first. Skip praise and summaries that restate the diff.
+
+Your response is posted as a pull request comment, so write it as self-contained Markdown and report only what you verified.

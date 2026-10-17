@@ -4,6 +4,7 @@ import { OpenCode } from '@opencode/sdk/effect'
 import { Effect, Layer } from 'effect'
 import { Agent } from '../../../src/_agent/agent.ts'
 import { layer as OpenCodeAgent } from '../../../src/_agent/opencode-agent.ts'
+import { commentOnPullRequest } from './github.ts'
 
 /**
  * Model used when the action does not provide one.
@@ -49,7 +50,26 @@ const AgentLive = Layer.provide(
 
 const program = Effect.gen(function* () {
   const agent = yield* Agent
-  yield* agent.prompt(prompt, { model })
+  return yield* agent.prompt(prompt, { model })
 })
 
-await Effect.runPromise(Effect.provide(program, AgentLive))
+const review = await Effect.runPromise(Effect.provide(program, AgentLive))
+console.log(review)
+
+/**
+ * Publish the review as a pull request comment, unless the input disables it or
+ * the run has no pull request to comment on.
+ */
+if (process.env.INPUT_COMMENT?.trim() !== 'false') {
+  const token = process.env.GH_TOKEN?.trim()
+  const repository = process.env.GITHUB_REPOSITORY?.trim()
+  const pullRequest = process.env.GITHUB_PR_NUMBER?.trim()
+
+  if (!review.trim()) {
+    console.error('actions/review: skipping comment, the review is empty')
+  } else if (!token || !repository || !pullRequest) {
+    console.error('actions/review: skipping comment, GH_TOKEN, GITHUB_REPOSITORY, or GITHUB_PR_NUMBER is not set')
+  } else {
+    await commentOnPullRequest({ repository, pullRequest, token, body: review })
+  }
+}

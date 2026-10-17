@@ -11,6 +11,11 @@ inputs:
     required: false
     default: opencode/glm-5.3-flash-free
 
+  comment:
+    description: Post the review as a comment on the pull request that triggered the run
+    required: false
+    default: "true"
+
 runs:
   using: composite
   steps:
@@ -28,5 +33,9 @@ runs:
       env:
         INPUT_SKILL: ${{ inputs.skill }}
         INPUT_MODEL: ${{ inputs.model }}
+        INPUT_COMMENT: ${{ inputs.comment }}
         ACTION_DIR: ${{ github.action_path }}
+        # Commenting needs `pull-requests: write` on the calling workflow.
+        GH_TOKEN: ${{ github.token }}
+        GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
       run: bun "$ACTION_DIR/src/index.ts"
