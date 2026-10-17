@@ -1,0 +1,32 @@
+name: OpenLoop Review
+description: Run an OpenCode review agent using a skill
+
+inputs:
+  skill:
+    description: Path to a skill directory (containing SKILL.md) or a skill file to run
+    required: true
+
+  model:
+    description: Model that runs the review, as `provider/model`
+    required: false
+    default: opencode/glm-5.3-flash-free
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: bun install --frozen-lockfile
+
+    - name: Run review
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        INPUT_SKILL: ${{ inputs.skill }}
+        INPUT_MODEL: ${{ inputs.model }}
+        ACTION_DIR: ${{ github.action_path }}
+      run: bun "$ACTION_DIR/src/index.ts"

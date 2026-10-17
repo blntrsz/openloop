@@ -1,6 +1,6 @@
-import { AbsolutePath, Location, OpenCode } from '@opencode/sdk/effect'
+import { AbsolutePath, Location, Model, OpenCode } from '@opencode/sdk/effect'
 import { Effect, Layer } from 'effect'
-import { Agent } from './agent.ts'
+import { Agent, type PromptOptions } from './agent.ts'
 
 /**
  * An `Agent` implementation backed by OpenCode.
@@ -14,9 +14,10 @@ export const layer = Layer.effect(
     const opencode = yield* OpenCode.Service
 
     const prompt = Effect.fn('OpenCodeAgent.prompt')(
-      function* (input: string) {
+      function* (input: string, options?: PromptOptions) {
         const session = yield* opencode.sessions.create({
           title: 'openloop',
+          model: options?.model ? Model.Ref.parse(options.model) : undefined,
           location: Location.Ref.make({
             directory: AbsolutePath.make(process.cwd())
           })
