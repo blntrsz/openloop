@@ -7,7 +7,7 @@ inputs:
     required: true
 
   model:
-    description: Model that runs the review, as `provider/model`. Credentials for its provider must be in the environment, such as `OPENCODE_API_KEY` for OpenCode's free models
+    description: Model that runs the review, as `provider/model`. OpenCode's free models need no credentials; other providers need theirs in the environment
     required: false
     default: opencode/glm-5.3-flash-free
 
@@ -27,6 +27,14 @@ runs:
       working-directory: ${{ github.workspace }}
       run: bun install --frozen-lockfile
 
+    - name: Install OpenCode CLI
+      shell: bash
+      # Pinned to the version the action was developed against. The CLI runs in
+      # the OpenCode identity, which is what makes its free models available.
+      run: |
+        curl -fsSL https://opencode.ai/install | bash -s -- --version 2.0.31
+        echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
+
     - name: Run review
       shell: bash
       working-directory: ${{ github.workspace }}
@@ -35,6 +43,8 @@ runs:
         INPUT_MODEL: ${{ inputs.model }}
         INPUT_COMMENT: ${{ inputs.comment }}
         ACTION_DIR: ${{ github.action_path }}
+        # Lets the skill diff the pull request against its base branch.
+        GITHUB_BASE_REF: ${{ github.base_ref }}
         # Commenting needs `pull-requests: write` on the calling workflow.
         GH_TOKEN: ${{ github.token }}
         GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}

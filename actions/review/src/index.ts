@@ -1,7 +1,6 @@
 import { readFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { OpenCode } from '@opencode/sdk/effect'
-import { Effect, Layer } from 'effect'
+import { Effect } from 'effect'
 import { Agent } from '../../../src/_agent/agent.ts'
 import { layer as OpenCodeAgent } from '../../../src/_agent/opencode-agent.ts'
 import { commentOnPullRequest } from './github.ts'
@@ -9,8 +8,9 @@ import { commentOnPullRequest } from './github.ts'
 /**
  * Model used when the action does not provide one.
  *
- * An OpenCode free model, which needs `OPENCODE_API_KEY` in the environment.
- * Any other provider needs its own credentials there instead.
+ * An OpenCode free model, which the CLI runs inside the OpenCode identity, so
+ * no credentials are needed. Any other provider needs its own credentials in
+ * the environment.
  */
 const defaultModel = 'opencode/glm-5.3-flash-free'
 
@@ -38,25 +38,15 @@ const prompt = readSkill(skill)
 const model = process.env.INPUT_MODEL?.trim() || defaultModel
 
 /**
- * `Agent` backed by OpenCode, with host logs surfaced on stderr so the run is
- * observable on the CI runner.
+ * `Agent` backed by the OpenCode CLI, whose own logs surface on stderr so the
+ * run is observable on the CI runner.
  */
-const AgentLive = Layer.provide(
-  OpenCodeAgent,
-  OpenCode.layer({
-    log: {
-      level: 'info',
-      emit: (entry) => console.error(entry.message, entry.attributes ?? '')
-    }
-  })
-)
-
 const program = Effect.gen(function* () {
   const agent = yield* Agent
   return yield* agent.prompt(prompt, { model })
 })
 
-const review = await Effect.runPromise(Effect.provide(program, AgentLive))
+const review = await Effect.runPromise(Effect.provide(program, OpenCodeAgent))
 console.log(review)
 
 // An agent that answers with nothing has failed, and a silent run is worse than

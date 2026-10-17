@@ -16,11 +16,6 @@ jobs:
   review:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      # Credentials for the model the review runs on. The default is an OpenCode
-      # free model, which needs a key from the OpenCode console. Set it as a
-      # repository secret: the review fails without it.
-      OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
