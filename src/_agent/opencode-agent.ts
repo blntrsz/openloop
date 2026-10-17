@@ -7,7 +7,8 @@ import { Agent, type PromptOptions } from './agent.ts'
  *
  * Requires the `OpenCode.Service` SDK service, provided by `OpenCode.layer`.
  * Each `prompt` opens a session, waits for the agent to finish, and resolves
- * with the text of its final message.
+ * with the text of its final message. A run that the provider rejected fails
+ * with the provider's error rather than resolving with empty text.
  */
 export const layer = Layer.effect(
   Agent,
@@ -32,15 +33,25 @@ export const layer = Layer.effect(
 
         yield* opencode.sessions.wait({ sessionID: session.id })
 
-        // Messages are returned newest first, so the first assistant message is
+        // Messages are returned newest first, so the newest assistant message is
         // the one the agent finished with.
-        const { data } = yield* opencode.message.list({
-          sessionID: session.id,
-          type: 'assistant',
-          limit: 1
-        })
+        const { data } = yield* opencode.message.list({ sessionID: session.id, limit: 10 })
 
-        const message = data[0]
+        const idle = data.find((message) => message.type === 'idle' && message.outcome === 'failed')
+        const message = data.find((candidate) => candidate.type === 'assistant')
+        const error =
+          (idle?.type === 'idle' ? idle.error : undefined) ??
+          (message?.type === 'assistant' ? message.error : undefined)
+
+        // A provider that rejects the credentials or cannot route the model never
+        // produces text, so surface its error instead of resolving with an empty
+        // review that reads like a clean bill of health.
+        if (error) {
+          return yield* Effect.fail(
+            new Error(`OpenCodeAgent.prompt: the agent failed with ${error.type}: ${error.message}`)
+          )
+        }
+
         if (message?.type !== 'assistant') return ''
 
         return message.content
