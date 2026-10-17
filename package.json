@@ -1,0 +1,23 @@
+{
+  "name": "openloop",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "typecheck": "bun check"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "@opencode-ai/sdk": "^1.19.3",
+    "@opencode/sdk": "^2.0.32",
+    "effect": "^4.0.5"
+  },
+  "overrides": {
+    "effect": "4.0.5"
+  }
+}
