@@ -7,9 +7,9 @@ inputs:
     required: true
 
   model:
-    description: Model that runs the review, as `provider/model`. Credentials for its provider must be in the environment, such as `ANTHROPIC_API_KEY`
+    description: Model that runs the review, as `provider/model`. Credentials for its provider must be in the environment, such as `OPENCODE_API_KEY` for OpenCode's free models
     required: false
-    default: anthropic/claude-sonnet-5-5
+    default: opencode/glm-5.3-flash-free
 
   comment:
     description: Post the review as a comment on the pull request that triggered the run

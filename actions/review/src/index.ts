@@ -9,11 +9,10 @@ import { commentOnPullRequest } from './github.ts'
 /**
  * Model used when the action does not provide one.
  *
- * The provider's credentials must be in the environment, for example
- * `ANTHROPIC_API_KEY`. OpenCode's own free models are rejected outside the
- * OpenCode application.
+ * An OpenCode free model, which needs `OPENCODE_API_KEY` in the environment.
+ * Any other provider needs its own credentials there instead.
  */
-const defaultModel = 'anthropic/claude-sonnet-5-5'
+const defaultModel = 'opencode/glm-5.3-flash-free'
 
 /**
  * Read the skill sent to the agent.
