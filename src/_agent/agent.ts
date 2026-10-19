@@ -17,8 +17,8 @@ export class Agent extends Context.Service<
   Agent,
   {
     /**
-     * Send a prompt to the agent.
+     * Send a prompt to the agent, resolving with its final text response.
      */
-    readonly prompt: (input: string, options?: PromptOptions) => Effect.Effect<void>
+    readonly prompt: (input: string, options?: PromptOptions) => Effect.Effect<string>
   }
 >()('openloop/Agent') {}

@@ -9,6 +9,8 @@ concurrency:
 
 permissions:
   contents: read
+  # The review is posted back to the pull request as a comment.
+  pull-requests: write
 
 jobs:
   review:
@@ -25,3 +27,6 @@ jobs:
         uses: ./actions/review
         with:
           skill: actions/review/skills/review
+          model: opencode/glm-5.3-flash-free#high
+          fast-model: opencode/glm-5.3-flash-free#low
+          min-severity: medium

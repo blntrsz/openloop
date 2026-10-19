@@ -7,9 +7,29 @@ inputs:
     required: true
 
   model:
-    description: Model that runs the review, as `provider/model`
+    description: Model that runs the review, as `provider/model` plus an optional `#variant` for the effort level (low, high, max). OpenCode's free models need no credentials; other providers need theirs in the environment
     required: false
-    default: opencode/glm-5.3-flash-free
+    default: opencode/glm-5.3-flash-free#high
+
+  fast-model:
+    description: Model that reconciles the new review with an earlier round's comments — what to close and what to keep. Same format; a low-effort variant is enough for it
+    required: false
+    default: opencode/glm-5.3-flash-free#low
+
+  min-severity:
+    description: Lowest severity of finding that is published at all, of low, medium, high, critical
+    required: false
+    default: medium
+
+  comment:
+    description: Post the review as a comment on the pull request that triggered the run
+    required: false
+    default: "true"
+
+  token:
+    description: Token for posting the review. GitHub's own workflow token can comment, update, and delete, but not resolve a conversation, so closing falls back to deletion; pass a personal access token with repo access to resolve instead
+    required: false
+    default: ${{ github.token }}
 
 runs:
   using: composite
@@ -22,11 +42,29 @@ runs:
       working-directory: ${{ github.workspace }}
       run: bun install --frozen-lockfile
 
+    - name: Install OpenCode CLI
+      shell: bash
+      # Pinned to the version the action was developed against. The CLI runs in
+      # the OpenCode identity, which is what makes its free models available.
+      run: |
+        curl -fsSL https://opencode.ai/v2/install | bash -s -- --version 2.0.31
+        echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
+
     - name: Run review
       shell: bash
       working-directory: ${{ github.workspace }}
       env:
         INPUT_SKILL: ${{ inputs.skill }}
         INPUT_MODEL: ${{ inputs.model }}
+        INPUT_FAST_MODEL: ${{ inputs['fast-model'] }}
+        INPUT_MIN_SEVERITY: ${{ inputs['min-severity'] }}
+        INPUT_COMMENT: ${{ inputs.comment }}
         ACTION_DIR: ${{ github.action_path }}
+        # Lets the skill diff the pull request against its base branch.
+        GITHUB_BASE_REF: ${{ github.base_ref }}
+        # Anchors inline review comments to the head commit of the PR.
+        GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        # Commenting needs `pull-requests: write` on the calling workflow.
+        GH_TOKEN: ${{ inputs.token }}
+        GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
       run: bun "$ACTION_DIR/src/index.ts"
