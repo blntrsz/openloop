@@ -27,3 +27,6 @@ jobs:
         uses: ./actions/review
         with:
           skill: actions/review/skills/review
+          model: opencode/glm-5.3-flash-free#high
+          fast-model: opencode/glm-5.3-flash-free#low
+          min-severity: medium
