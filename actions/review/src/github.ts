@@ -285,7 +285,10 @@ export const resolveCommentThread = async (
       }
     }
   }
-  if (threads.errors || threads.data === undefined) return 'blocked'
+  if (threads.errors || threads.data === undefined) {
+    console.error(`actions/review: resolving comment ${commentId}: listing threads failed: ${JSON.stringify(threads.errors ?? threads.data).slice(0, 300)}`)
+    return 'blocked'
+  }
 
   const nodes = threads.data.repository?.pullRequest?.reviewThreads?.nodes ?? []
   const thread = nodes.find((node) => node.comments?.nodes?.[0]?.databaseId === commentId)
@@ -315,7 +318,11 @@ export const resolveCommentThread = async (
     errors?: unknown
     data?: { resolveReviewThread?: { thread?: { isResolved?: boolean } } }
   }
-  return done.errors || done.data?.resolveReviewThread?.thread?.isResolved !== true ? 'blocked' : 'resolved'
+  if (done.errors || done.data?.resolveReviewThread?.thread?.isResolved !== true) {
+    console.error(`actions/review: resolving comment ${commentId}: the mutation failed: ${JSON.stringify(done.errors ?? done.data).slice(0, 300)}`)
+    return 'blocked'
+  }
+  return 'resolved'
 }
 
 /**
