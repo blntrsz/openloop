@@ -45,6 +45,8 @@ runs:
         ACTION_DIR: ${{ github.action_path }}
         # Lets the skill diff the pull request against its base branch.
         GITHUB_BASE_REF: ${{ github.base_ref }}
+        # Anchors inline review comments to the head commit of the PR.
+        GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         # Commenting needs `pull-requests: write` on the calling workflow.
         GH_TOKEN: ${{ github.token }}
         GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
