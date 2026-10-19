@@ -83,20 +83,30 @@ const isReport = (value: unknown): value is { summary: string; findings: Finding
  * loudly, and the log above the error shows what the agent wrote.
  */
 const parseReport = (text: string): { summary: string; findings: Finding[] } => {
-  const match = text.match(/`{3,}openloop-review[ \t]*\r?\n([\s\S]*)$/)
-  if (match === null || match[1] === undefined) {
+  // The report is read strictly first: everything after the labelled block,
+  // which fails a block that closes early or holds JSON with triple
+  // backticks inside a comment. When the agent wrote prose after its fence,
+  // the lazy variant stops at the first closing fence instead.
+  const strict = text.match(/`{3,}openloop-review[ \t]*\r?\n([\s\S]*)$/)
+  const lazy = strict === null ? null : text.match(/`{3,}openloop-review[ \t]*\r?\n([\s\S]*?)\n`{3,}[ \t]*\r?\n?/)
+  if (strict === null || strict[1] === undefined) {
     throw new Error('actions/review: the review does not end with an ```openloop-review block')
   }
 
-  const block = match[1].replace(/`{3,}[ \t]*\s*$/, '').trim()
-
+  let block = strict[1].replace(/`{3,}[ \t]*\s*$/, '').trim()
   let parsed: unknown
   try {
     parsed = JSON.parse(block)
-  } catch (error) {
-    throw new Error(
-      `actions/review: the review report is not valid JSON: ${error instanceof Error ? error.message : String(error)}`
-    )
+  } catch {
+    // Fall back to the lazily bounded block before giving up.
+    block = lazy?.[1]?.trim() ?? block
+    try {
+      parsed = JSON.parse(block)
+    } catch (error) {
+      throw new Error(
+        `actions/review: the review report is not valid JSON: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
   }
 
   if (!isReport(parsed)) {
