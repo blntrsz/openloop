@@ -131,8 +131,8 @@ export const layer = Layer.effect(
     const prompt = Effect.fn('OpenCodeAgent.prompt')(
       function* (input: string, options?: PromptOptions) {
         // Provider-class failures, like a `no-route` blip from the model
-        // gateway, are transient. A run that died before saying anything is
-        // retried a few times; anything that produced text is never retried.
+        // gateway, are transient: only a run that died before saying
+        // anything is retried a few times, and only these failures are.
         let result = yield* Effect.promise(() => run(input, options))
         for (const seconds of [5, 15, 45]) {
           const failure = result.failure
@@ -146,9 +146,17 @@ export const layer = Layer.effect(
 
         const { text, failure } = result
 
-        // A provider may reject the credentials or the model, and then no
-        // review exists. Surface the reason instead of resolving with empty
-        // text that reads like a clean bill of health.
+        // A run that said something is kept, even one an error event rode
+        // along on: that text is the review. A provider may still reject the
+        // credentials or the model, and then no review exists at all —
+        // surface the reason instead of resolving with empty text that reads
+        // like a clean bill of health.
+        if (text.trim()) {
+          if (failure) {
+            console.error(`OpenCodeAgent: the run finished alongside an error (${failure.message}), keeping the review`)
+          }
+          return text
+        }
         if (failure) {
           return yield* Effect.fail(
             new Error(`OpenCodeAgent.prompt: the agent failed with ${failure.type}: ${failure.message}`)

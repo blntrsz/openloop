@@ -239,10 +239,14 @@ export const resolveCommentThread = async (
 ): Promise<'resolved' | 'blocked'> => {
   const [owner, name] = credentials.repository.split('/')
   const threadsQuery = `
-    query ($owner: String!, $name: String!, $number: Int!) {
+    query ($owner: String!, $name: String!, $number: Int!, $after: String) {
       repository(owner: $owner, name: $name) {
         pullRequest(number: $number) {
-          reviewThreads(first: 100) {
+          reviewThreads(first: 100, after: $after) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
             nodes {
               id
               isResolved
@@ -257,40 +261,43 @@ export const resolveCommentThread = async (
       }
     }`
 
-  const listed = await fetch('https://api.github.com/graphql', {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${credentials.token}`,
-      'content-type': 'application/json'
-    },
-    body: JSON.stringify({
-      query: threadsQuery,
-      variables: { owner, name, number: Number(credentials.pullRequest) }
+  const nodes: { id: string; isResolved: boolean; comments?: { nodes?: { databaseId?: number }[] } }[] = []
+  let after: string | undefined
+  for (let page = 0; ; page++) {
+    const listed = await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${credentials.token}`,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        query: threadsQuery,
+        variables: { owner, name, number: Number(credentials.pullRequest), after }
+      })
     })
-  })
 
-  const threads = (await listed.json()) as {
-    errors?: unknown
-    data?: {
-      repository?: {
-        pullRequest?: {
-          reviewThreads?: {
-            nodes?: {
-              id: string
-              isResolved: boolean
-              comments?: { nodes?: { databaseId?: number }[] }
-            }[]
+    const threads = (await listed.json()) as {
+      errors?: unknown
+      data?: {
+        repository?: {
+          pullRequest?: {
+            reviewThreads?: {
+              pageInfo?: { hasNextPage?: boolean; endCursor?: string | null }
+              nodes?: { id: string; isResolved: boolean; comments?: { nodes?: { databaseId?: number }[] } }[]
+            }
           }
         }
       }
     }
-  }
-  if (threads.errors || threads.data === undefined) {
-    console.error(`actions/review: resolving comment ${commentId}: listing threads failed: ${JSON.stringify(threads.errors ?? threads.data).slice(0, 300)}`)
-    return 'blocked'
+
+    const pageOf = threads.data?.repository?.pullRequest?.reviewThreads
+    if (threads.errors || pageOf === undefined) return 'blocked'
+
+    nodes.push(...(pageOf.nodes ?? []))
+    if (pageOf.pageInfo?.hasNextPage !== true || page >= 10) break
+    after = pageOf.pageInfo.endCursor ?? undefined
   }
 
-  const nodes = threads.data.repository?.pullRequest?.reviewThreads?.nodes ?? []
   const thread = nodes.find((node) => node.comments?.nodes?.[0]?.databaseId === commentId)
   if (thread === undefined) return 'blocked'
   if (thread.isResolved) return 'resolved'
