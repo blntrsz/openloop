@@ -26,6 +26,11 @@ inputs:
     required: false
     default: "true"
 
+  token:
+    description: Token for posting the review. GitHub's own workflow token can comment, update, and delete, but not resolve a conversation, so closing falls back to deletion; pass a personal access token with repo access to resolve instead
+    required: false
+    default: ${{ github.token }}
+
 runs:
   using: composite
   steps:
@@ -60,6 +65,6 @@ runs:
         # Anchors inline review comments to the head commit of the PR.
         GITHUB_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         # Commenting needs `pull-requests: write` on the calling workflow.
-        GH_TOKEN: ${{ github.token }}
+        GH_TOKEN: ${{ inputs.token }}
         GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
       run: bun "$ACTION_DIR/src/index.ts"

@@ -30,7 +30,7 @@ Each run is three phases:
 
 1. **Review** (the `model` input, effort variant after `#`): the agent diffs the PR against its base (`GITHUB_BASE_REF`) and reports every finding as severity `low` → `critical`. Findings below `min-severity` are dropped, and any `high` or `critical` surviving means the sticky title flips to 🚩.
 2. **Reconcile** (the `fast-model` input, typically a low-effort variant): with the earlier round's comments and the new findings in context, a second agent decides which previous comments still stand (`keep`) and which are addressed (`close`).
-3. **Publish** (deterministic TypeScript): closed conversations are resolved via GraphQL (falling back to deletion), repeated findings update their previous comment, new findings post inline, and the sticky comment is rewritten. Nothing the two agents say is posted verbatim; they only decide, the code renders.
+3. **Publish** (deterministic TypeScript): closed conversations are resolved via GraphQL — falling back to deletion, because GitHub's own workflow token is not allowed to resolve a conversation; pass your own token through the action's `token` input and closes resolve instead — repeated findings update their previous comment, new findings post inline, and the sticky comment is rewritten. Nothing the two agents say is posted verbatim; they only decide, the code renders.
 
 Inline comments carry a hidden marker, so a following run updates them instead of duplicating. Findings the API cannot anchor to a changed hunk fall back to a file-level comment, and if even that fails they are spelled out in the sticky comment. The skill is in `actions/review/skills/review/SKILL.md`.
 
